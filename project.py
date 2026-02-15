@@ -58,6 +58,18 @@ def run_eda_correlation(df):
     plt.title("Korelacija PM2.5 cestica sa meteorolskim faktorima")
     plt.show()
 
+def run_stl_decomposition(df):
+    print("\n--- Pokretanje STL dekompozicije")
+
+    #uzimamo manji uzorak zbog preglednosti grafika
+    subset = df['PM2.5'].tail(1000)
+
+    #period=24 jer podaci na dnevnom nivou(dnevna sezonalnost)
+    res = STL(subset, period=24).fit()
+
+    fig = res.plot()
+    plt.suptitle('STL Dekompozicija: Trend, Sezonalnost i Reziduali', fontsize=15)
+    plt.show()
 
 
 def main():
@@ -68,7 +80,8 @@ def main():
         df = preprocess_missing_values(df)
         print(f"Podaci uspjesno ucitani. Ukupan broj uzoraka: {len(df)}") #35064
 
-        run_eda_correlation(df)
+        #run_eda_correlation(df)
+        run_stl_decomposition(df)
 
         # if df['PM2.5'].isnull().sum() == 0:
         #     print("Nema nedostajucih vrijednosti.")
