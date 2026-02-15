@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sb
+from datetime import datetime
 
 from statsmodels.tsa.seasonal import STL
 from statsmodels.tsa.arima.model import ARIMA
@@ -14,7 +15,7 @@ from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import LSTM, Dense
 
 from sklearn.preprocessing import MinMaxScaler
-from sklearn.metrics import mean_squared_error
+from sklearn.metrics import mean_squared_error, mean_absolute_error
 
 import warnings
 warnings.filterwarnings('ignore')
@@ -46,6 +47,17 @@ def preprocess_missing_values(df):
 
     return df
 
+# odgovorice koji meteo faktor ima najjacu korelaciju sa PM2.5
+def run_eda_correlation(df):
+    print("\n---Pokretanje analize korelacije--\n")
+    plt.figure(figsize=(10,8))
+
+    corr_matrix = df.corr()
+
+    sb.heatmap(corr_matrix, annot=True, cmap='coolwarm', fmt=".2f")
+    plt.title("Korelacija PM2.5 cestica sa meteorolskim faktorima")
+    plt.show()
+
 
 
 def main():
@@ -54,13 +66,15 @@ def main():
     try:
         df = load_air_quality_data(path)
         df = preprocess_missing_values(df)
-        print(f"Podaci uspjesno ucitani. Ukupan broj uzoraka: {len(df)}")
+        print(f"Podaci uspjesno ucitani. Ukupan broj uzoraka: {len(df)}") #35064
 
-        if df['PM2.5'].isnull().sum() == 0:
-            print("Nema nedostajucih vrijednosti.")
+        run_eda_correlation(df)
 
-        print("\nPregled obradjenih podataka:")
-        print(df.head())
+        # if df['PM2.5'].isnull().sum() == 0:
+        #     print("Nema nedostajucih vrijednosti.")
+
+        # print("\nPregled obradjenih podataka:")
+        # print(df.head())
     
     except FileNotFoundError:
         print(f"Greska: Fajl nije pronadjen.")
