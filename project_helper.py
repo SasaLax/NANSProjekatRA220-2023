@@ -71,3 +71,35 @@ def run_stl_decomposition(df):
     fig = res.plot()
     plt.suptitle('STL Dekompozicija: Trend, Sezonalnost i Reziduali', fontsize=15)
     plt.show()
+
+def run_arima_model(df):
+    print("\n--- Pokretanje ARIMA modela ---")
+    
+    test_size = 4320 
+    train = df['PM2.5'].iloc[:-test_size]
+    test = df['PM2.5'].iloc[-test_size:]
+    
+    # p=1 (gleda sat unazad), d=1 (gleda promjenu), q=1 (ispravlja gresku)
+    # koristimo metodu 'innovations_mle' koja je brza za slabije procesore
+    model = ARIMA(train, order=(1, 1, 1))
+    
+    # Dodajemo maxiter=20 da ne bi vrtio u beskonacno ako ne moze da nadje rjesenje
+    model_fit = model.fit(method='innovations_mle') 
+    
+    # Predviđanje
+    forecast = model_fit.forecast(steps=24)
+    
+    # RACUNANJE METRIKA (Sekcija 5 tvog rada)
+    rmse = np.sqrt(mean_squared_error(test.iloc[:24], forecast))
+    mae = mean_absolute_error(test.iloc[:24], forecast)
+    
+    print(f"ARIMA RMSE: {rmse:.2f}")
+    print(f"ARIMA MAE: {mae:.2f}")
+
+    # Grafik
+    plt.figure(figsize=(10,5))
+    plt.plot(test.iloc[:24].values, label='Stvarne vrijednosti (Test)')
+    plt.plot(forecast.values, label='ARIMA predikcija', color='red', linestyle='--')
+    plt.title('ARIMA Benchmark: Predviđanje za 24h')
+    plt.legend()
+    plt.show()

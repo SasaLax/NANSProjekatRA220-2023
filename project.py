@@ -8,8 +8,10 @@ def main():
         df = preprocess_missing_values(df)
         print(f"Podaci uspjesno ucitani. Ukupan broj uzoraka: {len(df)}") #35064
 
-        run_eda_correlation(df) #PM2.5 ima jasnu negativnu korelaciju sa brzinom vjetra i temp
-        run_stl_decomposition(df) #Potvrdjena jasna sezonalnost
+        # run_eda_correlation(df) #PM2.5 ima jasnu negativnu korelaciju sa brzinom vjetra i temp
+        # run_stl_decomposition(df) #Potvrdjena jasna sezonalnost
+
+        run_arima_model(df)
 
         # if df['PM2.5'].isnull().sum() == 0:
         #     print("Nema nedostajucih vrijednosti.")
