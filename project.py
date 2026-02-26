@@ -13,7 +13,9 @@ def main():
 
         #run_arima_model(df)
 
-        run_prophet_model(df)
+        #run_prophet_model(df)
+
+        run_lstm_model(df)
 
         # if df['PM2.5'].isnull().sum() == 0:
         #     print("Nema nedostajucih vrijednosti.")

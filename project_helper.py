@@ -140,3 +140,60 @@ def run_prophet_model(df):
     plt.title('Prophet: Predviđanje za 24h')
     plt.legend()
     plt.show()
+
+def run_lstm_model(df):
+    print("\n--- Pokretanje LSTM modela ---")
+    
+    # Skaliranje podataka (bitno za neuronske mreze)
+    scaler = MinMaxScaler()
+    data_scaled = scaler.fit_transform(df[['PM2.5']])
+    
+    # Parametri
+    look_back = 24 # Model gleda zadnja 24 sata da bi predvidio sljedeci
+    test_size = 4320
+    
+    # Priprema podataka za LSTM
+    def create_dataset(dataset, look_back=1):
+        X, Y = [], []
+        for i in range(len(dataset)-look_back-1):
+            X.append(dataset[i:(i+look_back), 0])
+            Y.append(dataset[i + look_back, 0])
+        return np.array(X), np.array(Y)
+
+    train_data = data_scaled[:-test_size]
+    test_data = data_scaled[-test_size-look_back:]
+
+    X_train, y_train = create_dataset(train_data, look_back)
+    X_test, y_test = create_dataset(test_data, look_back)
+
+    # Reshape za LSTM: [samples, time steps, features]
+    X_train = np.reshape(X_train, (X_train.shape[0], X_train.shape[1], 1))
+    X_test = np.reshape(X_test, (X_test.shape[0], X_test.shape[1], 1))
+
+    # Arhitektura mreze
+    model = Sequential([
+        LSTM(50, activation='relu', input_shape=(look_back, 1)),
+        Dense(1)
+    ])
+    model.compile(optimizer='adam', loss='mse')
+    
+    # Trening (na Colabu ce trajati kratko)
+    model.fit(X_train, y_train, epochs=5, batch_size=32, verbose=0)
+
+    # Predviđanje
+    predictions = model.predict(X_test[:24], verbose=0)
+    predictions = scaler.inverse_transform(predictions) # Vracanje u originalne vrijednosti
+    
+    y_true_original = df['PM2.5'].iloc[-test_size : -test_size + 24].values
+
+    # Metrike
+    rmse = np.sqrt(mean_squared_error(y_true_original, predictions))
+    print(f"LSTM RMSE: {rmse:.2f}")
+
+    # Grafik
+    plt.figure(figsize=(10,5))
+    plt.plot(y_true_original, label='Stvarne vrijednosti')
+    plt.plot(predictions, label='LSTM predikcija', color='orange')
+    plt.title('LSTM: Predviđanje za 24h')
+    plt.legend()
+    plt.show()
