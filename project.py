@@ -11,7 +11,9 @@ def main():
         # run_eda_correlation(df) #PM2.5 ima jasnu negativnu korelaciju sa brzinom vjetra i temp
         # run_stl_decomposition(df) #Potvrdjena jasna sezonalnost
 
-        run_arima_model(df)
+        #run_arima_model(df)
+
+        run_prophet_model(df)
 
         # if df['PM2.5'].isnull().sum() == 0:
         #     print("Nema nedostajucih vrijednosti.")

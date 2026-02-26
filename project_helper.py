@@ -103,3 +103,40 @@ def run_arima_model(df):
     plt.title('ARIMA Benchmark: Predviđanje za 24h')
     plt.legend()
     plt.show()
+
+def run_prophet_model(df):
+    print("\n--- Pokretanje Prophet modela ---")
+    
+    # Prophet zahtijeva specifičan format: ds (datumi) i y (vrijednosti)
+    df_prophet = df.reset_index()[['date', 'PM2.5']]
+    df_prophet.columns = ['ds', 'y']
+    df_prophet['ds'] = df_prophet['ds'].dt.tz_localize(None) # Uklanjanje vremenske zone za svaki slucaj
+
+    test_size = 4320
+    train = df_prophet.iloc[:-test_size]
+    test = df_prophet.iloc[-test_size:]
+
+    # Model sa dnevnom, sedmicnom i godisnjom sezonalnoscu
+    model = Prophet(daily_seasonality=True, weekly_seasonality=True, yearly_seasonality=True)
+    model.fit(train)
+
+    # Predviđanje za 24h
+    future = model.make_future_dataframe(periods=24, freq='H')
+    forecast = model.predict(future)
+    
+    y_pred = forecast['yhat'].tail(24).values
+    y_true = test['y'].iloc[:24].values
+
+    # Metrike
+    rmse = np.sqrt(mean_squared_error(y_true, y_pred))
+    mae = mean_absolute_error(y_true, y_pred)
+    print(f"Prophet RMSE: {rmse:.2f}")
+    print(f"Prophet MAE: {mae:.2f}")
+
+    # Grafik
+    plt.figure(figsize=(10,5))
+    plt.plot(y_true, label='Stvarne vrijednosti')
+    plt.plot(y_pred, label='Prophet predikcija', color='green')
+    plt.title('Prophet: Predviđanje za 24h')
+    plt.legend()
+    plt.show()
