@@ -156,8 +156,8 @@ def run_lstm_model(df):
     def create_dataset(dataset, look_back=1):
         X, Y = [], []
         for i in range(len(dataset)-look_back-1):
-            X.append(dataset[i:(i+look_back), 0])
-            Y.append(dataset[i + look_back, 0])
+            X.append(dataset[i:(i+look_back), 0]) #dataset od 24 sata(0 do 23, 1 do 24)
+            Y.append(dataset[i + look_back, 0]) #dataset koji model pokusava da predvidi
         return np.array(X), np.array(Y)
 
     train_data = data_scaled[:-test_size]

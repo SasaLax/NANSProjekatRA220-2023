@@ -249,4 +249,86 @@
 		\item \textbf{Aditivni model:} Prophet najbolje radi na serijama koje imaju jasne trendove rasta kroz godine, dok je zagađenje vazduha veoma haotično i zavisi od trenutnih meteoroloških promjena koje ovaj model ne vidi direktno.
 	\end{itemize}
 	
+	\subsubsection{Linijska analiza Prophet implementacije}
+	
+	U nastavku je pruženo detaljno objašnjenje ključnih operacija unutar funkcije \texttt{run\_prophet\_model}:
+	
+	\begin{itemize}
+		\item \textbf{\texttt{reset\_index()}}: Izvlači datum iz indeksa tabele i pretvara ga u regularnu kolonu, što je preduslov za rad sa Prophet bibliotekom.
+		\item \textbf{\texttt{columns = ['ds', 'y']}}: Vrši esencijalno preimenovanje kolona. Prophet zahtijeva kolonu \texttt{ds} (\textit{datestamp}) za vremensku osu i \texttt{y} za ciljnu vrijednost (PM2.5).
+		\item \textbf{\texttt{tz\_localize(None)}}: Uklanja informacije o vremenskoj zoni kako bi se izbjegle nekompatibilnosti tokom proračuna trendova.
+		\item \textbf{\texttt{daily\_seasonality=True}}: Aktivira ugrađeni Fourierov red koji omogućava modelu da prepozna ciklične promjene unutar 24 časa (npr. jutarnji špic zagađenja).
+		\item \textbf{\texttt{make\_future\_dataframe}}: Generiše novi skup podataka koji sadrži samo datume za budući period (24 sata unaprijed), čime se priprema teren za ekstrapolaciju.
+		\item \textbf{\texttt{predict(future)}}: Glavna funkcija koja koristi naučene težine trenda i sezonalnosti kako bi popunila kolonu \texttt{yhat} (predviđena vrijednost).
+	\end{itemize}
+	
+	\section{LSTM Neuronska Mreža (Deep Learning)}
+	
+	U ovom radu primijenjena je \textbf{LSTM (Long Short-Term Memory)} arhitektura, koja pripada porodici rekurentnih neuronskih mreža (RNN). Za razliku od prethodnih modela, LSTM je sposoban da zadrži informacije kroz duže vremenske periode, što je ključno za modeliranje zagađenja vazduha gdje prethodni atmosferski uslovi direktno utiču na trenutno stanje.
+	
+	\begin{lstlisting}[language=Python, caption=Kompletna implementacija LSTM modela]
+		def run_lstm_model(df):
+		# 1. Priprema i skaliranje podataka
+		scaler = MinMaxScaler(feature_range=(0, 1))
+		data_scaled = scaler.fit_transform(df[['PM2.5']])
+		
+		# 2. Definisanje 'prozora' (look-back perioda)
+		look_back = 24 # Gledamo 24 sata unazad za predikciju narednog sata
+		test_size = 4320
+		
+		def create_dataset(dataset, look_back=1):
+		X, Y = [], []
+		for i in range(len(dataset)-look_back-1):
+		X.append(dataset[i:(i+look_back), 0])
+		Y.append(dataset[i + look_back, 0])
+		return np.array(X), np.array(Y)
+		
+		# 3. Podjela na trening i test set
+		train_data = data_scaled[:-test_size]
+		test_data = data_scaled[-test_size-look_back:]
+		
+		X_train, y_train = create_dataset(train_data, look_back)
+		X_test, y_test = create_dataset(test_data, look_back)
+		
+		# 4. Reshape u format [uzorci, vremenski koraci, osobine]
+		X_train = np.reshape(X_train, (X_train.shape[0], X_train.shape[1], 1))
+		X_test = np.reshape(X_test, (X_test.shape[0], X_test.shape[1], 1))
+		
+		# 5. Izgradnja arhitekture mreze
+		model = Sequential([
+		LSTM(50, activation='relu', input_shape=(look_back, 1)),
+		Dense(1)
+		])
+		model.compile(optimizer='adam', loss='mse')
+		
+		# 6. Proces treniranja (Fitting)
+		model.fit(X_train, y_train, epochs=5, batch_size=32, verbose=0)
+		
+		# 7. Predvidjanje i inverzno skaliranje
+		predictions = model.predict(X_test[:24], verbose=0)
+		predictions = scaler.inverse_transform(predictions)
+	\end{lstlisting}
+	
+	\subsection{Analiza LSTM arhitekture i procesa treniranja}
+	
+	Implementacija LSTM modela zahtijevala je kompleksniju transformaciju podataka u odnosu na ARIMA i Prophet modele:
+	
+	\begin{itemize}
+		\item \textbf{Min-Max skaliranje:} Budući da neuronske mreže koriste gradijentne metode optimizacije, podaci su svedeni na opseg $[0, 1]$. Ovo sprječava dominaciju velikih vrijednosti nad malim i ubrzava konvergenciju modela.
+		\item \textbf{Klizni prozor (\textit{Sliding Window}):} Funkcija \texttt{create\_dataset} transformiše seriju u nadgledani problem učenja (\textit{supervised learning}). Svaki ulazni podatak $X$ je zapravo vektor od 24 uzastopna mjerenja, dok je $Y$ ciljna vrijednost u trenutku $t+1$.
+		
+		\item \textbf{Struktura modela:} Odabrano je $50$ LSTM jedinica koje formiraju "pamćenje" mreže. Izlazni sloj koristi \texttt{Dense} neuron bez aktivacione funkcije, što je standard za probleme regresije (predviđanje kontinuiranih vrijednosti).
+	\end{itemize}
+	
+	\subsection{Rezultati i vizuelizacija}
+	
+	Evaluacija modela izvršena je na testnom skupu, pri čemu je dobijena vrijednost korijena srednje kvadratne greške \textbf{RMSE: 6.19}. 
+	
+	\begin{figure}[h!]
+		\centering
+		\includegraphics[width=0.85\textwidth]{lstm.png}
+		\caption{Prikaz predikcije LSTM modela u odnosu na stvarne vrijednosti PM2.5}
+		\label{fig:lstm_graph}
+	\end{figure}
+	
 \end{document}
